@@ -32,7 +32,7 @@ generate_random_number() {
 }
 generate_valid_instance_name() {
   local random_number=$(generate_random_number)
-  echo "khoan-${random_number}"
+  echo "laodau-${random_number}"
 }
 
 startup_script_url="https://raw.githubusercontent.com/laodauhgc/titan-install/main/gcp/laodau-docker.sh"
@@ -44,6 +44,7 @@ zones=(
 )
 # Kiểm tra sự tồn tại của tổ chức
 organization_id=$(gcloud organizations list --format="value(ID)" 2>/dev/null)
+sleep 3
 echo -e "${YELLOW}ID tổ chức của bạn là: $organization_id ${NC}"
 
 # Lấy ID tài khoản thanh toán
@@ -94,7 +95,6 @@ create_firewall_rule() {
 }
 
 re_enable_compute_projects(){
-    sleep 4
     local projects=$(gcloud projects list --format="value(projectId)")
     echo -e "${ORANGE}projects list ${NC}: $projects"
     if [ -z "$projects" ]; then
@@ -104,7 +104,6 @@ re_enable_compute_projects(){
     for project_ide in $projects; do
         echo -e "${BLUE} enable api & create firewall_rule  for project: $project_ide .....${NC}"
         gcloud services enable compute.googleapis.com --project "$project_ide"
-        sleep 8
         create_firewall_rule "$project_ide"
         echo -e "${BLUE}enabled compute.googleapis.com project: $project_ide ${NC}"
     done
@@ -122,9 +121,7 @@ check_service_enablement() {
             echo -e "${BLUE}Dịch vụ $service_name đã được enable trong dự án : $project_id.${NC}"
             break
         else
-            echo -e "${RED}Dịch vụ $service_name chưa được enable trong dự án : $project_id. Đang cố gắng enable...${NC}"
-            gcloud services enable "$service_name" --project "$project_id"
-            sleep 15
+            echo -e "${RED}Dịch vụ $service_name chưa được enable trong dự án : $project_id. Đang đợi enable...${NC}"
         fi
     done
 }
@@ -157,7 +154,7 @@ create_vms(){
             --provisioning-model=STANDARD \
             --service-account="$service_account_email" \
             --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append \
-            --create-disk=auto-delete=yes,boot=yes,device-name="$instance_name",image=projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20240607,mode=rw,size=80,type=projects/"$project_id"/zones/"$zone"/diskTypes/pd-balanced \
+            --create-disk=auto-delete=yes,boot=yes,device-name="$instance_name",image=projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20240607,mode=rw,size=180,type=projects/"$project_id"/zones/"$zone"/diskTypes/pd-balanced \
             --no-shielded-secure-boot \
             --shielded-vtpm \
             --shielded-integrity-monitoring \
@@ -194,16 +191,6 @@ list_of_servers(){
 
 }
 
-countdown() {
-    local seconds=$1
-    while [ $seconds -gt 0 ]; do
-        echo -ne "${YELLOW}Kịch bản sẽ chạy sau: $seconds giây...${NC}\r"
-        sleep 1
-        ((seconds--))
-    done
-    echo -e "${YELLOW}Bắt đầu quá trình HÍP DÂM !${NC}"
-}
-
 init_rm(){
     billing_accounts=$(gcloud beta billing accounts list --format="value(name)")
     # Vô hiệu hóa billing cho tất cả các project
@@ -222,7 +209,41 @@ init_rm(){
         gcloud projects delete "$projectin" --quiet
     done
     echo -e "${YELLOW} Hoàn thành việc xóa tất cả các project.${NC}"
-    countdown 28
+}
+
+wait_for_projects_deleted() {
+  local current_projects
+  while true; do
+    current_projects=$(gcloud projects list --format="value(projectId)" 2>/dev/null)
+    if [ -z "$current_projects" ] || [ "$(echo "$current_projects" | wc -l)" -eq 0 ]; then
+      echo -e "${BLUE}Tất cả các project đã bị xóa hoàn toàn.${NC}"
+      break
+    else
+      echo -e "${RED}Vẫn còn $(echo "$current_projects" | wc -l) project đang tồn tại, chờ thêm...${NC}"
+      sleep 7  # Chờ thêm trước khi kiểm tra lại
+    fi
+  done
+}
+
+wait_for_projects_created() {
+  local desired_projects=2
+  local current_projects=0
+  
+  while [ "$current_projects" -lt "$desired_projects" ]; do
+    if [ -n "$organization_id" ]; then
+      current_projects=$(gcloud projects list --format="value(projectId)" --filter="parent.id=$organization_id" 2>/dev/null | wc -l)
+    else
+      current_projects=$(gcloud projects list --format="value(projectId)" 2>/dev/null | wc -l)
+    fi
+
+    if [ "$current_projects" -ge "$desired_projects" ]; then
+      echo -e "${BLUE}Đã có đủ số lượng dự án: $current_projects projects.${NC}"
+      break
+    else
+      echo -e "${RED}Hiện tại có $current_projects dự án, đang chờ...${NC}"
+      sleep 5  # Chờ 10 giây trước khi kiểm tra lại
+    fi
+  done
 }
 
 # Gọi hàm để đảm bảo có đủ số lượng dự án
@@ -233,7 +254,9 @@ main() {
     echo -e "${YELLOW}                   *******DÁI BÉ TÍ HON*******                    ${NC}"
     echo -e "${RED}----------------Híp d â m chị ....-----------------${NC}"
     init_rm
+    wait_for_projects_deleted
     ensure_n_projects
+    wait_for_projects_created
     echo -e "${YELLOW}----------------Kiểm tra xong số lượng project.-----------------${NC}"
     re_enable_compute_projects
     run_enable_project_apicomputer
