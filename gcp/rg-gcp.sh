@@ -41,6 +41,7 @@ zones=(
   "us-east4-a"
   "us-east1-b"
   "us-east5-a"
+  "us-west2-a"
 )
 # Kiểm tra sự tồn tại của tổ chức
 organization_id=$(gcloud organizations list --format="value(ID)" 2>/dev/null)
@@ -53,7 +54,7 @@ echo -e "${YELLOW} Billing_account_id của bạn là: $billing_account_id ${NC}
 
 # Hàm đảm bảo có đủ số lượng dự án
 ensure_n_projects() {
-  desired_projects=2
+  desired_projects=3
   if [ -n "$organization_id" ]; then
     current_projects=$(gcloud projects list --format="value(projectId)" --filter="parent.id=$organization_id" 2>/dev/null | wc -l)
   else
