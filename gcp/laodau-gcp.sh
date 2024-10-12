@@ -32,7 +32,7 @@ generate_random_number() {
 }
 generate_valid_instance_name() {
   local random_number=$(generate_random_number)
-  echo "laodau-${random_number}"
+  echo "vm-${random_number}"
 }
 
 startup_script_url="https://raw.githubusercontent.com/laodauhgc/titan-install/main/gcp/laodau-docker.sh"
