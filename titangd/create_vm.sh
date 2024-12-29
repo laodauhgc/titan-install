@@ -36,7 +36,6 @@ if [[ -z "$PROJECT_ID" ]]; then
     exit 1
 fi
 
-
 # Lấy email service account mặc định của project
 SERVICE_ACCOUNT=$(gcloud iam service-accounts list --project="$PROJECT_ID" --filter="email~compute@developer.gserviceaccount.com"  --format='value(email)')
 
@@ -46,8 +45,10 @@ if [[ -z "$SERVICE_ACCOUNT" ]]; then
     exit 1
 fi
 
+# URL của startup script trên Github
+STARTUP_SCRIPT_URL="https://raw.githubusercontent.com/laodauhgc/titan-install/blob/main/titangd/fdisk.sh"
 
-# Tạo VM sử dụng tên VM, Project ID và Service Account
+# Tạo VM sử dụng tên VM, Project ID, Service Account và Startup Script
 gcloud compute instances create "$VM_NAME" \
     --project="$PROJECT_ID" \
     --zone=us-east5-c \
@@ -63,6 +64,7 @@ gcloud compute instances create "$VM_NAME" \
     --shielded-vtpm \
     --shielded-integrity-monitoring \
     --labels=goog-ec-src=vm_add-gcloud \
-    --reservation-affinity=any
+    --reservation-affinity=any \
+    --metadata startup-script="#!/bin/bash\ncurl -s '$STARTUP_SCRIPT_URL' | bash"
 
-echo "VM $VM_NAME đang được tạo trong project $PROJECT_ID với service account $SERVICE_ACCOUNT..."
+echo "VM $VM_NAME đang được tạo trong project $PROJECT_ID với service account $SERVICE_ACCOUNT và startup script."
