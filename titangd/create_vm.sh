@@ -82,6 +82,12 @@ touch /tmp/.titan_virtualdisk_configured
 EOF
 )
 
+# Tạo file tạm
+TEMP_SCRIPT_FILE=$(mktemp)
+
+# Lưu startup script vào file tạm
+echo "$STARTUP_SCRIPT" > "$TEMP_SCRIPT_FILE"
+
 # Tạo VM sử dụng tên VM, Project ID, Service Account và Startup Script
 gcloud compute instances create "$VM_NAME" \
     --project="$PROJECT_ID" \
@@ -99,6 +105,9 @@ gcloud compute instances create "$VM_NAME" \
     --shielded-integrity-monitoring \
     --labels=goog-ec-src=vm_add-gcloud \
     --reservation-affinity=any \
-    --metadata startup-script="$STARTUP_SCRIPT"
+    --metadata-from-file startup-script="$TEMP_SCRIPT_FILE"
+
+# Xóa file tạm
+rm "$TEMP_SCRIPT_FILE"
 
 echo "VM $VM_NAME đang được tạo trong project $PROJECT_ID với service account $SERVICE_ACCOUNT và startup script. Vui lòng chờ vài phút."
