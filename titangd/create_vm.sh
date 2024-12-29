@@ -7,6 +7,9 @@
 #    trước khi chạy script này.
 # ***************************************************
 
+# Danh sách các tên VM hợp lệ
+declare -a VALID_VM_NAMES=("titangd-01" "titangd-02" "titangd-03" "av-titangd-01")
+
 # Lấy tên VM từ tham số dòng lệnh
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -24,6 +27,20 @@ done
 # Kiểm tra xem tên VM đã được cung cấp chưa
 if [[ -z "$VM_NAME" ]]; then
   echo "Vui lòng cung cấp tên VM bằng --vm=ten_vm"
+  exit 1
+fi
+
+# Kiểm tra xem tên VM có hợp lệ không
+is_valid=false
+for valid_name in "${VALID_VM_NAMES[@]}"; do
+  if [[ "$VM_NAME" == "$valid_name" ]]; then
+    is_valid=true
+    break
+  fi
+done
+
+if ! $is_valid; then
+  echo "Tên VM không hợp lệ: '$VM_NAME'. Phải là một trong: ${VALID_VM_NAMES[*]}"
   exit 1
 fi
 
@@ -46,7 +63,7 @@ if [[ -z "$SERVICE_ACCOUNT" ]]; then
 fi
 
 # URL của startup script trên Github (ĐÃ SỬA)
-startup_script_url="https://raw.githubusercontent.com/laodauhgc/titan-install/refs/heads/main/titangd/full-env.sh"
+startup_script_url="https://raw.githubusercontent.com/laodauhgc/titan-install/refs/heads/main/titangd/full-env.sh?vm_name=$VM_NAME"
 
 # Tạo VM sử dụng tên VM, Project ID, Service Account và Startup Script
 gcloud compute instances create "$VM_NAME" \
@@ -68,7 +85,3 @@ gcloud compute instances create "$VM_NAME" \
     --metadata=startup-script-url="$startup_script_url" \
 
 echo "VM $VM_NAME đang được tạo trong project $PROJECT_ID với service account $SERVICE_ACCOUNT và startup script. Vui lòng chờ vài phút."
-echo "***"
-echo "Bạn cần copy thư mục .titancandidate đã backup trước đó vào thư muc /root trước khi khởi động L1"
-echo "Sau khi copy xong chỉ cần chạy lệnh: systemctl start titand.service"
-echo "DONE."
