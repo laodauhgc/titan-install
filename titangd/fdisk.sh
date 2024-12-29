@@ -36,4 +36,7 @@ fi
 
 echo "Hoàn thành!"
 
+# Chờ 3 giây trước khi reboot
+sleep 3
+
 reboot
