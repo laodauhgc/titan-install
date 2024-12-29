@@ -82,6 +82,7 @@ touch /tmp/.titan_virtualdisk_configured
 EOF
 )
 
+
 # Tạo file tạm
 TEMP_SCRIPT_FILE=$(mktemp)
 
@@ -105,7 +106,7 @@ gcloud compute instances create "$VM_NAME" \
     --shielded-integrity-monitoring \
     --labels=goog-ec-src=vm_add-gcloud \
     --reservation-affinity=any \
-    --metadata-from-file startup-script="$TEMP_SCRIPT_FILE"
+    --metadata startup-script="$(cat "$TEMP_SCRIPT_FILE")"
 
 # Xóa file tạm
 rm "$TEMP_SCRIPT_FILE"
