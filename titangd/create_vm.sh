@@ -45,49 +45,8 @@ if [[ -z "$SERVICE_ACCOUNT" ]]; then
     exit 1
 fi
 
-# URL của các script
-fdisk_script_url="https://raw.githubusercontent.com/laodauhgc/titan-install/refs/heads/main/titangd/fdisk.sh"
-env_script_url="https://raw.githubusercontent.com/laodauhgc/titan-install/refs/heads/main/titangd/env.sh"
-
-# Tạo startup script kết hợp
-STARTUP_SCRIPT=$(cat << EOF
-#!/bin/bash
-
-# Đánh dấu rằng script đã chạy để tránh bị chạy lại nhiều lần
-if [ -f /tmp/.titan_virtualdisk_configured ]; then
-    echo "Virtual disk đã được cấu hình trước đó. Bỏ qua cấu hình lại."
-    exit 0
-fi
-
-# Tải và chạy fdisk.sh
-echo "Tải và chạy fdisk.sh"
-curl -s '$fdisk_script_url' | bash
-
-# Kiểm tra xem /titan đã được mount chưa
-if mount | grep -q "/titan"; then
-    echo "/titan đã mount thành công, tiến hành cài đặt env.sh"
-    # Đánh dấu để tránh chạy lại env.sh
-    if [ ! -f /tmp/.titan_env_configured ]; then
-        echo "Tải và chạy env.sh"
-        curl -s '$env_script_url' | bash
-        touch /tmp/.titan_env_configured
-    else
-    echo "env.sh đã được chạy trước đó, bỏ qua"
-    fi
-else
-    echo "/titan chưa được mount, bỏ qua cài đặt env.sh"
-fi
-# Đánh dấu rằng script đã chạy
-touch /tmp/.titan_virtualdisk_configured
-EOF
-)
-
-
-# Tạo file tạm
-TEMP_SCRIPT_FILE=$(mktemp)
-
-# Lưu startup script vào file tạm
-echo "$STARTUP_SCRIPT" > "$TEMP_SCRIPT_FILE"
+# URL của startup script trên Github (ĐÃ SỬA)
+startup_script_url="https://raw.githubusercontent.com/laodauhgc/titan-install/refs/heads/main/titangd/full-env.sh"
 
 # Tạo VM sử dụng tên VM, Project ID, Service Account và Startup Script
 gcloud compute instances create "$VM_NAME" \
@@ -106,9 +65,10 @@ gcloud compute instances create "$VM_NAME" \
     --shielded-integrity-monitoring \
     --labels=goog-ec-src=vm_add-gcloud \
     --reservation-affinity=any \
-    --metadata startup-script="$(cat "$TEMP_SCRIPT_FILE")"
-
-# Xóa file tạm
-rm "$TEMP_SCRIPT_FILE"
+    --metadata=startup-script-url="$startup_script_url" \
 
 echo "VM $VM_NAME đang được tạo trong project $PROJECT_ID với service account $SERVICE_ACCOUNT và startup script. Vui lòng chờ vài phút."
+echo "***"
+echo "Bạn cần copy thư mục .titancandidate đã backup trước đó vào thư muc /root trước khi khởi động L1"
+echo "Sau khi copy xong chỉ cần chạy lệnh: systemctl start titand.service"
+echo "DONE."
