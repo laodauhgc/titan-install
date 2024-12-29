@@ -45,8 +45,8 @@ if [[ -z "$SERVICE_ACCOUNT" ]]; then
     exit 1
 fi
 
-# URL của startup script trên Github
-STARTUP_SCRIPT_URL="https://raw.githubusercontent.com/laodauhgc/titan-install/blob/main/titangd/fdisk.sh"
+# URL của startup script trên Github (ĐÃ SỬA)
+STARTUP_SCRIPT_URL="https://raw.githubusercontent.com/laodauhgc/titan-install/refs/heads/main/titangd/fdisk.sh"
 
 # Tạo VM sử dụng tên VM, Project ID, Service Account và Startup Script
 gcloud compute instances create "$VM_NAME" \
