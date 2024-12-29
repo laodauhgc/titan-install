@@ -6,7 +6,7 @@ sudo mkdir -p /titan
 # Kiểm tra nếu tệp ảnh đã tồn tại, nếu không thì tạo
 if [ ! -f /titan/virtualdisk.img ]; then
     echo "Đang tạo tệp ảnh ảo 4TB..."
-    sudo dd if=/dev/zero of=/titan/virtualdisk.img bs=1M count=0 seek=4000000
+    sudo dd if=/dev/zero of=/titan/virtualdisk.img bs=1M count=0 seek=10000000
 else
     echo "Tệp ảnh đã tồn tại."
 fi
@@ -35,4 +35,5 @@ else
 fi
 
 echo "Hoàn thành!"
-echo "Bạn cần Reboot sau đó kiểm tra phân vùng bằng lệnh 'df -h'"
+
+reboot
