@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# ***************************************************
+# LƯU Ý:
+# 1. Bạn cần phải đăng nhập Google Cloud bằng lệnh:
+#    gcloud auth login
+#    trước khi chạy script này.
+# 2. Bạn cần chọn đúng tài khoản có quyền truy cập vào project Titan Network
+# ***************************************************
+
+
 # Lấy tên VM từ tham số dòng lệnh
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -25,18 +34,16 @@ PROJECT_ID=$(gcloud projects list --filter="name:Titan Network" --format='value(
 
 # Kiểm tra xem Project ID có được tìm thấy không
 if [[ -z "$PROJECT_ID" ]]; then
-  echo "Không tìm thấy project có tên 'Titan Network'."
+  echo "Không tìm thấy project có tên 'Titan Network'. Bạn đã đăng nhập đúng tài khoản chưa?"
   exit 1
 fi
-
 
 # Lấy email service account mặc định của project
 SERVICE_ACCOUNT=$(gcloud iam service-accounts list --project="$PROJECT_ID" --filter="email~compute@developer.gserviceaccount.com"  --format='value(email)')
 
-
 # Kiểm tra xem Service Account có được tìm thấy không
 if [[ -z "$SERVICE_ACCOUNT" ]]; then
-    echo "Không tìm thấy service account mặc định của project"
+    echo "Không tìm thấy service account mặc định của project. Bạn đã đăng nhập đúng tài khoản chưa?"
     exit 1
 fi
 
