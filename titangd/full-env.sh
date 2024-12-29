@@ -236,3 +236,7 @@ EOF
 echo "Kích hoạt titand.service..."
 systemctl enable titand.service
 echo "Dịch vụ titan L1 đã được kích hoạt."
+
+sleep 15s
+systemctl start titand.service
+echo "DONE."
