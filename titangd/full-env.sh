@@ -1,11 +1,10 @@
 #!/bin/bash
 
-# Lấy tham số vm_name từ URL
-IFS='?' read -r _ vm_params <<< "$1"
-IFS='=' read -r vm_name _ <<< "$vm_params"
+# Lấy tham số vm_name từ metadata của VM
+vm_name=$(/usr/bin/curl -s "http://metadata.google.internal/computeMetadata/v1/instance/attributes/vm_name" -H "Metadata-Flavor: Google")
 
 if [[ -z "$vm_name" ]]; then
-    echo "Error: VM name not found in startup script URL."
+    echo "Error: VM name not found in metadata."
     exit 1
 fi
 
@@ -237,7 +236,3 @@ EOF
 echo "Kích hoạt titand.service..."
 systemctl enable titand.service
 echo "Dịch vụ titan L1 đã được kích hoạt."
-
-sleep 30s
-systemctl start titand.service
-echo "DONE."
