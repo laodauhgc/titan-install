@@ -67,4 +67,4 @@ gcloud compute instances create "$VM_NAME" \
     --reservation-affinity=any \
     --metadata=startup-script-url="$startup_script_url" \
 
-echo "VM $VM_NAME đang được tạo trong project $PROJECT_ID với service account $SERVICE_ACCOUNT và startup script. Vui long cho vai phut."
+echo "VM $VM_NAME đang được tạo trong project $PROJECT_ID với service account $SERVICE_ACCOUNT và startup script. Vui lòng chờ vài phút."
