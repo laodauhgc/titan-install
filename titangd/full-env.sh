@@ -1,20 +1,127 @@
 #!/bin/bash
 
+# Lấy tham số vm_name từ URL
+IFS='?' read -r _ vm_params <<< "$1"
+IFS='=' read -r vm_name _ <<< "$vm_params"
+
+if [[ -z "$vm_name" ]]; then
+    echo "Error: VM name not found in startup script URL."
+    exit 1
+fi
+
+# Hàm để kiểm tra và cài đặt unzip nếu cần
+check_and_install_unzip() {
+  if ! command -v unzip &> /dev/null; then
+    echo "unzip is not installed. Installing..."
+    apt update
+    apt install -y unzip
+    if [ $? -ne 0 ]; then
+      echo "Error: Failed to install unzip."
+      return 1
+    fi
+    echo "unzip installed successfully."
+  fi
+  return 0
+}
+
+# Hàm để tải và giải nén file
+download_and_unzip() {
+  local name="$1"
+  local zip_url=""
+  local zip_file=""
+
+  case "$name" in
+    "titangd-01")
+      zip_url="https://utfs.io/f/iLnP4naFfLyou7wMYiIL3EU9P6nKYajv7w1BfqkoQOJcg28d"
+      zip_file="titangd-01.zip"
+      ;;
+    "titangd-02")
+      zip_url="https://utfs.io/f/iLnP4naFfLyoJugj0Nf4uKtLS2edD0fGlbpWI5M8rH7YhsF4"
+      zip_file="titangd-02.zip"
+      ;;
+    "titangd-03")
+      zip_url="https://utfs.io/f/iLnP4naFfLyo52KeRHGRCUsieyqpxZb1nJzDFOkN7mKAE380"
+      zip_file="titangd-03.zip"
+      ;;
+     "av-titangd-01")
+      zip_url="https://utfs.io/f/iLnP4naFfLyovfGs2nB0UWw1V3L2nYtgPIJdcuR8GaQKqyDE"
+      zip_file="av-titangd-01.zip"
+       ;;
+    *)
+      echo "Error: Invalid VM name '$name'. Must be one of: titangd-01, titangd-02, titangd-03, av-titangd-01"
+      return 1
+      ;;
+  esac
+
+  echo "Downloading $zip_file..."
+  wget -O "$zip_file" "$zip_url"
+  if [ $? -ne 0 ]; then
+    echo "Error: Failed to download $zip_file"
+    return 1
+  fi
+
+  echo "Unzipping $zip_file..."
+  unzip "$zip_file"
+  if [ $? -ne 0 ]; then
+    echo "Error: Failed to unzip $zip_file"
+    return 1
+  fi
+
+
+  local folder_name=$(echo "$zip_file" | sed 's/\.zip$//')
+
+  #Copy file titancandidate vào thư mục root
+
+  if [ -d "$folder_name"/.titancandidate ]; then
+    echo "Copying .titancandidate folder to /root"
+    cp -r "$folder_name"/.titancandidate /root
+    if [ $? -ne 0 ]; then
+       echo "Error: Failed to copy .titancandidate folder to /root"
+       return 1
+    fi
+
+     echo "Copy .titancandidate folder to /root successfully"
+  else
+    echo "Error: .titancandidate folder not found in extracted folder"
+    return 1
+  fi
+
+  echo "Finished processing $name"
+  return 0
+}
+
+# Chờ 30 giây trước khi tải
+sleep 30s
+
+# Kiểm tra và cài đặt unzip trước khi tiếp tục
+check_and_install_unzip
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
+
+# Gọi hàm download và unzip
+download_and_unzip "$vm_name"
+if [ $? -ne 0 ]; then
+    echo "Error: download_and_unzip function failed."
+    exit 1
+fi
+
 # Tạo thư mục /titan
-sudo mkdir -p /titan
+mkdir -p /titan
 
 # Kiểm tra nếu tệp ảnh đã tồn tại, nếu không thì tạo
 if [ ! -f /titan/virtualdisk.img ]; then
     echo "Đang tạo tệp ảnh ảo 4TB..."
-    sudo dd if=/dev/zero of=/titan/virtualdisk.img bs=1M count=0 seek=10000000
+    dd if=/dev/zero of=/titan/virtualdisk.img bs=1M count=0 seek=10000000
 else
     echo "Tệp ảnh đã tồn tại."
 fi
 
 # Kiểm tra nếu hệ thống tập tin đã được tạo trên tệp ảnh
-if ! sudo file -s /titan/virtualdisk.img | grep -q ext4; then
+if ! file -s /titan/virtualdisk.img | grep -q ext4; then
     echo "Đang tạo hệ thống tập tin ext4 trên tệp ảnh..."
-    sudo mkfs.ext4 /titan/virtualdisk.img
+    mkfs.ext4 /titan/virtualdisk.img
 else
     echo "Hệ thống tập tin đã được tạo."
 fi
@@ -22,14 +129,14 @@ fi
 # Mount tệp ảnh vào thư mục /titan
 if ! mount | grep -q "/titan"; then
     echo "Đang mount tệp ảnh vào /titan..."
-    sudo mount -o loop /titan/virtualdisk.img /titan
+    mount -o loop /titan/virtualdisk.img /titan
 else
     echo "/titan đã được mount."
 fi
 # Kiểm tra và thêm mục vào /etc/fstab nếu chưa có
 if ! grep -q "/titan/virtualdisk.img" /etc/fstab; then
     echo "Thêm cấu hình mount tự động vào /etc/fstab..."
-    echo "/titan/virtualdisk.img /titan ext4 loop 0 0" | sudo tee -a /etc/fstab > /dev/null
+    echo "/titan/virtualdisk.img /titan ext4 loop 0 0" | tee -a /etc/fstab > /dev/null
 else
     echo "Mục fstab đã tồn tại."
 fi
@@ -37,8 +144,6 @@ fi
 echo "Hoàn thành!"
 
 sleep 15s
-
-#!/bin/bash
 
 # Kiểm tra và tạo thư mục /titan/storage
 if [ ! -d "/titan/storage" ]; then
@@ -57,7 +162,7 @@ echo "K3s đã được cài đặt."
 # Cấu hình kubeconfig
 echo "Cấu hình kubeconfig..."
 mkdir -p ~/.kube
-sudo cat /etc/rancher/k3s/k3s.yaml | tee ~/.kube/config >/dev/null
+cat /etc/rancher/k3s/k3s.yaml | tee ~/.kube/config >/dev/null
 echo "kubeconfig đã được cấu hình."
 
 # Xác minh cài đặt K3s
@@ -133,9 +238,6 @@ echo "Kích hoạt titand.service..."
 systemctl enable titand.service
 echo "Dịch vụ titan L1 đã được kích hoạt."
 
-echo "Cài đặt môi trường hoàn tất!"
-
-echo "***"
-echo "Bạn cần copy thư mục .titancandidate đã backup trước đó vào thư muc /root trước khi khởi động L1"
-echo "Sau khi copy xong chỉ cần chạy lệnh: systemctl start titand.service"
+sleep 30s
+systemctl start titand.service
 echo "DONE."
