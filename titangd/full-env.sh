@@ -89,9 +89,6 @@ download_and_unzip() {
   return 0
 }
 
-# Chờ 30 giây trước khi tải
-sleep 30s
-
 # Kiểm tra và cài đặt unzip trước khi tiếp tục
 check_and_install_unzip
 if [ $? -ne 0 ]; then
